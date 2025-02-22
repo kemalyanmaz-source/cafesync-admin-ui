@@ -1,21 +1,19 @@
-import { Home, LayoutDashboard, Table, Settings, LogOut } from "lucide-react";
+import { LayoutDashboard, Table, Settings } from "lucide-react";
 import Link from "next/link";
 import { JSX } from "react";
 
 const Sidebar = () => {
+
   return (
     <div className="h-screen w-64 bg-gradient-to-b from-indigo-900 to-purple-800 text-white flex flex-col p-4">
       <h2 className="text-2xl font-bold mb-6">CafeSync Admin</h2>
 
       <nav className="flex-1 space-y-4">
         <SidebarItem href="/" icon={<LayoutDashboard size={20} />} text="Dashboard" />
-        <SidebarItem href="/pages/users" icon={<Table size={20} />} text="Tables" />
+        <SidebarItem href="/pages/users" icon={<Table size={20} />} text="Users" />
+        <SidebarItem href="/pages/cafes" icon={<Table size={20} />} text="Cafes" />
         <SidebarItem href="/settings" icon={<Settings size={20} />} text="Settings" />
       </nav>
-
-      <div className="border-t border-white/20 mt-4 pt-4">
-        <SidebarItem href="/logout" icon={<LogOut size={20} />} text="Logout" />
-      </div>
     </div>
   );
 };

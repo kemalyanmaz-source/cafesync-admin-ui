@@ -1,9 +1,13 @@
 "use client";
 
 import { Search, Bell, User } from "lucide-react";
+import { signIn, signOut, useSession } from "next-auth/react";
+import { redirect } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
 
 const Navbar = () => {
+
+  const { data: session } = useSession();
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -23,6 +27,7 @@ const Navbar = () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
+
 
   return (
     <div className="h-16 bg-white shadow-md flex items-center px-6 fixed top-0 left-64 right-0 w-[calc(100%-16rem)] z-50">
@@ -58,10 +63,19 @@ const Navbar = () => {
 
         {/* Kullanıcı Profili */}
         <div className="relative">
+
+          {session
+          ?
           <button onClick={() => toggleMenu("profile")} className="flex items-center space-x-2">
             <User size={24} className="text-gray-600 hover:text-gray-800 transition" />
-            <span className="text-gray-700 font-medium">Admin</span>
+            <span className="text-gray-700 font-medium">{session?.user.name}</span>
           </button>
+          :
+          <button onClick={() => toggleMenu("login")} className="flex items-center space-x-2">
+            <User size={24} className="text-gray-600 hover:text-gray-800 transition" />
+            <span className="text-gray-700 font-medium">Login</span>
+          </button>
+          }
 
           {activeMenu === "profile" && (
             <div className="absolute right-0 mt-2 w-40 bg-white shadow-lg rounded-md p-2">
@@ -71,8 +85,16 @@ const Navbar = () => {
               <button className="block text-left px-4 py-2 text-gray-700 hover:bg-gray-100 w-full">
                 Ayarlar
               </button>
-              <button className="block text-left px-4 py-2 text-red-600 hover:bg-gray-100 w-full">
+              <button className="block text-left px-4 py-2 text-red-600 hover:bg-gray-100 w-full" onClick={()=>signOut()}>
                 Çıkış Yap
+              </button>
+            </div>
+          )}
+
+          {activeMenu === "login" && (
+            <div className="absolute right-0 mt-2 w-40 bg-white shadow-lg rounded-md p-2">
+              <button onClick={() => signIn("google")} className="block text-left px-4 py-2 text-gray-700 hover:bg-gray-100 w-full">
+                Google
               </button>
             </div>
           )}

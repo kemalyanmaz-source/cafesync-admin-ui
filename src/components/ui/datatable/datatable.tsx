@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect, useRef, MouseEvent } from "react";
 import { ArrowUp, ArrowDown } from "lucide-react";
-import { Button } from "../button";  // ShadCN UI button
-import { Input } from "../input";    // ShadCN UI input
+import { Button } from "../button";
+import { Input } from "../input";
 
 /** Tablo sütun tanımı */
 export type DataTableColumn<T> = {

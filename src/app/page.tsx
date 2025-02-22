@@ -2,11 +2,11 @@
 
 import { ArrowUpRight, DollarSign, LineChart, ShoppingCart } from "lucide-react";
 import dynamic from "next/dynamic";
-import { Card, CardContent } from "./ui/card";
+import { Card, CardContent } from "../components/ui/card";
 import { JSX } from "react";
 
 // Grafik bileşenini dinamik olarak yükleyelim (SSR kapalı)
-const Chart = dynamic(() => import("./components/Chart"), { ssr: false });
+const Chart = dynamic(() => import("../components/ui/Chart"), { ssr: false });
 
 export default function Dashboard() {
   return (

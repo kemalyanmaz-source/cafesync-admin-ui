@@ -9,16 +9,18 @@ import { Dropdown } from "@/components/ui/dropdown/Dropdown";
 import { ExportColumnsDropdown } from "@/components/ui/datatable/export-dropdown";
 
 
-type User = {
+type Cafe = {
   id: number;
   name: string;
-  email: string;
-  role: string;
+  owner: string;
+  city: string;
+  district: string;
+  dateJoined: string;
+  status: "active" | "passive"
 };
 
-const userData: User[] = [
-  { id: 1, name: "Ahmet", email: "ahmet@example.com", role: "Admin" },
-  { id: 2, name: "Ayşe", email: "ayse@example.com", role: "User" },
+const cafeData: Cafe[] = [
+  { id: 1, name: "Bakkal", owner: "Kemal Yanmaz", city:"Istanbul", district:"Beyoglu", dateJoined: "bugin", status: "active"},
   // ...
 ];
 
@@ -26,28 +28,34 @@ export default function UsersPage() {
   const router = useRouter();
 
   // Table columns
-  const [tableColumns, setTableColumns] = useState<DataTableColumn<User>[]>([
+  const [tableColumns, setTableColumns] = useState<DataTableColumn<Cafe>[]>([
     { key: "name", header: "Name", sortable: true, visible: true },
-    { key: "email", header: "Email", sortable: true, visible: true },
-    { key: "role", header: "Role", sortable: true, visible: true },
+    { key: "owner", header: "Owner", sortable: true, visible: true },
+    { key: "city", header: "City", sortable: true, visible: true },
+    { key: "district", header: "District", sortable: true, visible: true },
+    { key: "dateJoined", header: "Date Joined", sortable: true, visible: true },
+    { key: "status", header: "Status", sortable: true, visible: true }
   ]);
 
   // Export columns
-  const [exportCols, setExportCols] = useState<Record<keyof User, boolean>>({
+  const [exportCols, setExportCols] = useState<Record<keyof Cafe, boolean>>({
     id: false,
     name: true,
-    email: true,
-    role: true,
+    owner: true,
+    city: true,
+    district: true,
+    dateJoined: true,
+    status: true
   });
 
   // Tablonun state'i
-  const [tableState, setTableState] = useState<DataTableState<User>>({
+  const [tableState, setTableState] = useState<DataTableState<Cafe>>({
     finalData: [],
     visibleColumns: tableColumns,
   });
 
   // Row actions
-  const actions: DataTableAction<User>[] = [
+  const actions: DataTableAction<Cafe>[] = [
     {
       label: "Edit",
       onClick: (row) => router.push(`/users/edit/${row.id}`),
@@ -91,7 +99,7 @@ export default function UsersPage() {
 
   return (
     <div className="p-6">
-      <h1 className="text-2xl font-bold mb-4">Users Table (Modular Setup)</h1>
+      <h1 className="text-2xl font-bold mb-4">Cafes</h1>
 
       <div className="flex gap-4 mb-3">
         {/* Table columns dropdown */}
@@ -112,7 +120,7 @@ export default function UsersPage() {
 
       <DataTable
         columns={tableColumns}
-        data={userData}
+        data={cafeData}
         actions={actions}
         filterMode="both"
         enableSorting
