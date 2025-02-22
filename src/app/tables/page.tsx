@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import { Button } from "../ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Input } from "../ui/input";
 import { FilterModel } from "../models/FilterModel";
+import { Accordion } from "../ui/accordion";
 
 // User data type
 type User = {
@@ -47,37 +47,34 @@ export default function TablesPage() {
     <div className="bg-white p-6 rounded-md shadow-md">
       <h1 className="text-2xl font-bold mb-4">Users Table</h1>
 
-      {/* Filter Section */}
-      <Card className="mb-4">
-        <CardHeader>
-          <CardTitle>Filters</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 gap-4">
-            <Input
-              placeholder="Filter Name"
-              value={filters.name}
-              onChange={(e) => handleColumnFilterChange("name", e.target.value)}
-            />
-            <Input
-              placeholder="Filter Email"
-              value={filters.email}
-              onChange={(e) => handleColumnFilterChange("email", e.target.value)}
-            />
-            <Input
-              placeholder="Filter Role"
-              value={filters.role}
-              onChange={(e) => handleColumnFilterChange("role", e.target.value)}
-            />
-          </div>
-          <Button className="mt-4" variant="outline" onClick={resetFilters}>
-            Reset Filters
+      {/* Accordion for Filters */}
+      <Accordion title="Filter Options">
+        <div className="grid grid-cols-2 gap-4">
+          <Input
+            placeholder="Filter Name"
+            value={filters.name}
+            onChange={(e) => handleColumnFilterChange("name", e.target.value)}
+          />
+          <Input
+            placeholder="Filter Email"
+            value={filters.email}
+            onChange={(e) => handleColumnFilterChange("email", e.target.value)}
+          />
+          <Input
+            placeholder="Filter Role"
+            value={filters.role}
+            onChange={(e) => handleColumnFilterChange("role", e.target.value)}
+          />
+        </div>
+        <div className="flex justify-end gap-2 mt-4">
+          <Button variant="destructive" onClick={resetFilters}>
+            Reset
           </Button>
-        </CardContent>
-      </Card>
+        </div>
+      </Accordion>
 
       {/* Table */}
-      <table className="w-full border-collapse">
+      <table className="w-full border-collapse mt-4">
         <thead>
           <tr>
             <th className="text-left p-2">ID</th>
@@ -88,7 +85,7 @@ export default function TablesPage() {
         </thead>
         <tbody>
           {filteredData.length > 0 ? (
-            filteredData.map((user: User) => (
+            filteredData.map((user : User) => (
               <tr key={user.id}>
                 <td className="p-2">{user.id}</td>
                 <td className="p-2">{user.name}</td>
