@@ -1,10 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import { SortingState } from "@tanstack/react-table";
+import { FilterModel } from "../models/FilterModel";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
-import { FilterModel } from "../models/FilterModel";
 import { Accordion } from "../ui/accordion";
+import { ArrowUp, ArrowDown } from "lucide-react"; // Icons for sorting
 
 // User data type
 type User = {
@@ -32,31 +34,101 @@ export default function TablesPage() {
   const [data, setData] = useState<User[]>(defaultData);
   const [filters, setFilters] = useState(new FilterModel());
 
-  // ✅ Define pagination state
+  // ✅ Pagination & Sorting states
   const [currentPage, setCurrentPage] = useState(1);
-  const pageSize = 5; // ✅ Default page size
+  const [pageSize, setPageSize] = useState(5); // Default page size
+  const [sorting, setSorting] = useState<SortingState>([]);
 
-  // ✅ Apply filtering first
+  // ---------------------------------------
+  // Actions: Edit & Delete
+  // ---------------------------------------
+  const handleEdit = (rowData: User) => {
+    console.log("Editing user:", rowData);
+    // Optionally open a modal or navigate to another page
+  };
+
+  const handleDelete = (rowData: User) => {
+    console.log("Deleting user:", rowData);
+    // Remove from data
+    setData((prevData) => prevData.filter((user) => user.id !== rowData.id));
+  };
+
+  // ---------------------------------------
+  // 1) Filter
+  // ---------------------------------------
   const filteredData = filters.applyFilters(data);
 
-  // ✅ Apply pagination AFTER filtering
-  const startIndex = (currentPage - 1) * pageSize;
-  const paginatedData = filteredData.slice(startIndex, startIndex + pageSize);
-  const totalPages = Math.ceil(filteredData.length / pageSize);
+  // ---------------------------------------
+  // 2) Sort
+  // ---------------------------------------
+  const sortedData = [...filteredData].sort((a, b) => {
+    if (sorting.length === 0) return 0;
+  
+    const { id, desc } = sorting[0];
+    const valA = a[id as keyof User];
+    const valB = b[id as keyof User];
+  
+    // 🏷 Numeric Sort if the column is a number
+    if (typeof valA === "number" && typeof valB === "number") {
+      return desc ? valB - valA : valA - valB;
+    }
+  
+    // 🏷 Otherwise, do string-based sorting
+    const strA = valA?.toString().toLowerCase() || "";
+    const strB = valB?.toString().toLowerCase() || "";
+  
+    if (strA < strB) return desc ? 1 : -1;
+    if (strA > strB) return desc ? -1 : 1;
+    return 0;
+  });
 
-  // ✅ Function to update filter values
+  // ---------------------------------------
+  // 3) Paginate
+  // ---------------------------------------
+  const startIndex = (currentPage - 1) * pageSize;
+  const paginatedData = sortedData.slice(startIndex, startIndex + pageSize);
+  const totalPages = Math.ceil(sortedData.length / pageSize);
+
+  // ---------------------------------------
+  // Sorting Handler (Asc → Desc → Default)
+  // ---------------------------------------
+  const toggleSorting = (column: keyof User) => {
+    setSorting((prev) => {
+      if (prev.length === 0 || prev[0]?.id !== column) {
+        // No sort yet, or different column → Asc
+        return [{ id: column, desc: false }];
+      } else if (!prev[0].desc) {
+        // Asc → Desc
+        return [{ id: column, desc: true }];
+      } else {
+        // Desc → Reset
+        return [];
+      }
+    });
+  };
+
+  // ---------------------------------------
+  // Filter Handlers
+  // ---------------------------------------
   const handleColumnFilterChange = (field: keyof FilterModel, value: string) => {
     setFilters((prevFilters) => new FilterModel(
       field === "name" ? value : prevFilters.name,
       field === "email" ? value : prevFilters.email,
       field === "role" ? value : prevFilters.role
     ));
-    setCurrentPage(1); // ✅ Reset pagination on filtering
+    setCurrentPage(1);
   };
 
-  // ✅ Reset filters
   const resetFilters = () => {
     setFilters(new FilterModel());
+    setCurrentPage(1);
+  };
+
+  // ---------------------------------------
+  // Page Size Handler
+  // ---------------------------------------
+  const handlePageSizeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setPageSize(Number(e.target.value));
     setCurrentPage(1);
   };
 
@@ -92,27 +164,51 @@ export default function TablesPage() {
 
       {/* ✅ Table */}
       <table className="w-full border-collapse mt-4">
-        <thead>
+        <thead className="bg-gray-100">
           <tr>
-            <th className="text-left p-2">ID</th>
-            <th className="text-left p-2">Name</th>
-            <th className="text-left p-2">Email</th>
-            <th className="text-left p-2">Role</th>
+            {["id", "name", "email", "role"].map((column) => (
+              <th
+                key={column}
+                className="text-left p-2 cursor-pointer select-none"
+                onClick={() => toggleSorting(column as keyof User)}
+              >
+                <div className="flex items-center gap-2">
+                  {column.toUpperCase()}
+                  {sorting[0]?.id === column && (
+                    sorting[0].desc ? <ArrowDown size={14} /> : <ArrowUp size={14} />
+                  )}
+                </div>
+              </th>
+            ))}
+            {/* ACTIONS COLUMN */}
+            <th className="text-left p-2">Actions</th>
           </tr>
         </thead>
         <tbody>
           {paginatedData.length > 0 ? (
-            paginatedData.map((user: User) => (
-              <tr key={user.id}>
+            paginatedData.map((user) => (
+              <tr key={user.id} className="border-b hover:bg-gray-50">
                 <td className="p-2">{user.id}</td>
                 <td className="p-2">{user.name}</td>
                 <td className="p-2">{user.email}</td>
                 <td className="p-2">{user.role}</td>
+
+                {/* ACTION BUTTONS */}
+                <td className="p-2">
+                  <div className="flex gap-2">
+                    <Button variant="outline" onClick={() => handleEdit(user)}>
+                      Edit
+                    </Button>
+                    <Button variant="destructive" onClick={() => handleDelete(user)}>
+                      Delete
+                    </Button>
+                  </div>
+                </td>
               </tr>
             ))
           ) : (
             <tr>
-              <td colSpan={4} className="text-center p-4">
+              <td colSpan={5} className="text-center p-4">
                 No data found
               </td>
             </tr>
@@ -120,25 +216,43 @@ export default function TablesPage() {
         </tbody>
       </table>
 
-      {/* ✅ Pagination Controls */}
+      {/* ✅ Pagination & Page Size */}
       <div className="flex justify-between items-center mt-4">
-        <Button
-          variant="outline"
-          onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-          disabled={currentPage === 1}
-        >
-          Previous
-        </Button>
-        <span>
-          Page {currentPage} of {totalPages}
-        </span>
-        <Button
-          variant="outline"
-          onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
-          disabled={currentPage === totalPages}
-        >
-          Next
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+            disabled={currentPage === 1}
+          >
+            Previous
+          </Button>
+          <span>
+            Page {currentPage} of {totalPages}
+          </span>
+          <Button
+            variant="outline"
+            onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+            disabled={currentPage === totalPages}
+          >
+            Next
+          </Button>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <span>Show</span>
+          <select
+            className="border border-gray-300 rounded p-1"
+            value={pageSize}
+            onChange={handlePageSizeChange}
+          >
+            {[5, 10, 20, 50].map((size) => (
+              <option key={size} value={size}>
+                {size}
+              </option>
+            ))}
+          </select>
+          <span>entries</span>
+        </div>
       </div>
     </div>
   );
