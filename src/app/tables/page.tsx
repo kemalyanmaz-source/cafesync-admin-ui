@@ -7,6 +7,7 @@ import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Accordion } from "../ui/accordion";
 import { ArrowUp, ArrowDown } from "lucide-react"; // Icons for sorting
+import { useRouter } from "next/navigation";
 
 // User data type
 type User = {
@@ -39,14 +40,16 @@ export default function TablesPage() {
   const [pageSize, setPageSize] = useState(5); // Default page size
   const [sorting, setSorting] = useState<SortingState>([]);
 
+  const router = useRouter();
+
   // ---------------------------------------
   // Actions: Edit & Delete
   // ---------------------------------------
   const handleEdit = (rowData: User) => {
-    console.log("Editing user:", rowData);
-    // Optionally open a modal or navigate to another page
+    // Navigate to /users/edit/[id]
+    router.push(`/users/edit/${rowData.id}`);
   };
-
+  
   const handleDelete = (rowData: User) => {
     console.log("Deleting user:", rowData);
     // Remove from data
@@ -166,7 +169,7 @@ export default function TablesPage() {
       <table className="w-full border-collapse mt-4">
         <thead className="bg-gray-100">
           <tr>
-            {["id", "name", "email", "role"].map((column) => (
+            {["name", "email", "role"].map((column) => (
               <th
                 key={column}
                 className="text-left p-2 cursor-pointer select-none"
@@ -188,7 +191,6 @@ export default function TablesPage() {
           {paginatedData.length > 0 ? (
             paginatedData.map((user) => (
               <tr key={user.id} className="border-b hover:bg-gray-50">
-                <td className="p-2">{user.id}</td>
                 <td className="p-2">{user.name}</td>
                 <td className="p-2">{user.email}</td>
                 <td className="p-2">{user.role}</td>
