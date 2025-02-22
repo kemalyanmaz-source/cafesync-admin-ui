@@ -1,113 +1,122 @@
 "use client";
 
-import React, { useState, MouseEvent } from "react";
+import React, { useState, useEffect, useRef, MouseEvent } from "react";
 import { ArrowUp, ArrowDown } from "lucide-react";
-import { Button } from "./button";  // or wherever your Button is
-import { Input } from "./input";
+import { Button } from "./button";  // ShadCN UI button
+import { Input } from "./input";    // ShadCN UI input
 
-/**
- * Basic column definition for DataTable:
- * - key: field in T to display
- * - header: column title
- * - sortable: can user sort by this column?
- * - render?: custom cell renderer
- */
+/** Tablo sütun tanımı */
 export type DataTableColumn<T> = {
   key: keyof T;
   header: string;
   sortable?: boolean;
   render?: (row: T) => React.ReactNode;
+  visible?: boolean; // default true
 };
 
-/**
- * Row action definition (Edit, Delete, etc.)
- */
+/** Satır aksiyon tanımı (Edit, Delete vb.) */
 export type DataTableAction<T> = {
   label: string;
   variant?: "default" | "outline" | "destructive";
   onClick: (rowData: T) => void;
 };
 
-/**
- * Possible filtering modes:
- * - "none": no filtering
- * - "global": single input for all columns
- * - "column": individual input per column
- * - "both": both global & column filters
- */
+/** Filtre modları */
 export type FilterMode = "none" | "global" | "column" | "both";
 
-/**
- * Multi-column sorting: an array of these rules
- */
+/** Çoklu sütun sıralama: bir dizi rule */
 export type SortingRule<T> = {
   key: keyof T;
   desc: boolean;
 };
 
-/**
- * T must have an "id" field & be an object so we can do Object.values(...) safely
- */
+/** DataTable’ın parent’a yollayacağı durum */
+export interface DataTableState<T> {
+  finalData: T[];                      // Filtre + sıralama + sayfalama sonrası satırlar
+  visibleColumns: DataTableColumn<T>[]; // tabloda gerçekten gösterilen sütunlar
+}
+
+/** DataTable props */
 export interface DataTableProps<T extends { id: string | number } & Record<string, unknown>> {
   columns: DataTableColumn<T>[];
   data: T[];
   actions?: DataTableAction<T>[];
 
-  // Filters
-  filterMode?: FilterMode;             // "none" | "global" | "column" | "both"
-  filterPlaceholder?: string;          // for global filter input
+  // Filtre
+  filterMode?: FilterMode;
+  filterPlaceholder?: string;
 
-  // Sorting & Pagination
+  // Sıralama & Sayfalama
   enableSorting?: boolean;
   enablePagination?: boolean;
-
-  // Page size controls
   initialPageSize?: number;
   pageSizeOptions?: number[];
 
-  // Row key (defaults to "id")
+  // Row key
   rowKey?: keyof T;
 
-  // Row Selection
+  // Row selection
   enableRowSelection?: boolean;
   onSelectionChange?: (selectedIds: Array<string | number>) => void;
+
+  // Parent, tabloda neler olduğunu bilsin diye
+  onDataChange?: (state: DataTableState<T>) => void;
 }
 
-// -------------------------
-// Helpers: Filters
-// -------------------------
+// ------------------- Yardımcı Fonksiyonlar -------------------
 function applyColumnFilters<T extends Record<string, unknown>>(
   data: T[],
   filters: { [key: string]: string }
 ): T[] {
   return data.filter((row) =>
     Object.entries(filters).every(([colKey, filterVal]) => {
-      if (!filterVal) return true; // no filter set
-      const cellVal = row[colKey];
-      if (cellVal == null) return false;
-      return cellVal.toString().toLowerCase().includes(filterVal.toLowerCase());
+      if (!filterVal) return true;
+      const val = row[colKey];
+      if (val == null) return false;
+      return val.toString().toLowerCase().includes(filterVal.toLowerCase());
     })
   );
 }
 
 function applyGlobalFilter<T extends Record<string, unknown>>(
   data: T[],
+  visibleColumns: DataTableColumn<T>[],
   globalValue: string
 ): T[] {
   if (!globalValue) return data;
   const lower = globalValue.toLowerCase();
 
+  // sadece görünür sütunlarda ara
   return data.filter((row) =>
-    Object.values(row).some((val) => {
+    visibleColumns.some((col) => {
+      const val = row[col.key];
       if (val == null) return false;
       return val.toString().toLowerCase().includes(lower);
     })
   );
 }
 
-// -------------------------
-// The DataTable component
-// -------------------------
+function shallowEqualArrays<T>(a: T[], b: T[]): boolean {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) {
+    if (a[i] !== b[i]) return false;
+  }
+  return true;
+}
+
+function shallowEqualColumns<T extends Record<string, unknown>>(
+  a: DataTableColumn<T>[],
+  b: DataTableColumn<T>[]
+): boolean {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) {
+    if (a[i].key !== b[i].key) return false;
+    if (a[i].visible !== b[i].visible) return false;
+  }
+  return true;
+}
+
+// ------------------- DATA TABLE -------------------
 export function DataTable<
   T extends { id: string | number } & Record<string, unknown>
 >({
@@ -124,25 +133,24 @@ export function DataTable<
 
   enableRowSelection = false,
   onSelectionChange,
-}: DataTableProps<T>) {
 
-  // (A) Row Selection State
+  onDataChange,
+}: DataTableProps<T>) {
+  // Row selection
   const [selectedIds, setSelectedIds] = useState<Array<string | number>>([]);
 
-  // (B) Column / Global Filters
+  // Filtre state
   const [columnFilters, setColumnFilters] = useState<{ [key: string]: string }>({});
   const [globalFilter, setGlobalFilter] = useState("");
 
-  // (C) Multi-Column Sorting
+  // Çoklu sütun sıralama
   const [sorting, setSorting] = useState<SortingRule<T>[]>([]);
 
-  // (D) Pagination
+  // Sayfalama
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(initialPageSize);
 
-  // -------------------------
-  // Row selection logic
-  // -------------------------
+  // ------------------- ROW SELECTION -------------------
   function toggleRow(row: T) {
     const rowId = row[rowKey] as string | number;
     setSelectedIds((prev) => {
@@ -157,82 +165,71 @@ export function DataTable<
     });
   }
 
-  function toggleSelectAllVisible(e: React.ChangeEvent<HTMLInputElement>, visibleIds: Array<string | number>) {
+  function toggleSelectAllVisible(
+    e: React.ChangeEvent<HTMLInputElement>,
+    visibleIds: Array<string | number>
+  ) {
     if (e.target.checked) {
-      // add all visible
       const newSelected = Array.from(new Set([...selectedIds, ...visibleIds]));
       setSelectedIds(newSelected);
       onSelectionChange?.(newSelected);
     } else {
-      // remove visible
       const newSelected = selectedIds.filter((id) => !visibleIds.includes(id));
       setSelectedIds(newSelected);
       onSelectionChange?.(newSelected);
     }
   }
 
-  // -------------------------
-  // Sorting: shift-click => multi-col
-  // -------------------------
+  // ------------------- Sıralama (Header Click) -------------------
   function handleHeaderClick(key: keyof T, e: MouseEvent) {
     if (!enableSorting) return;
-
-    const isShiftPressed = e.shiftKey;
+    const shift = e.shiftKey;
     setSorting((prev) => {
-      let newSorting = [...prev];
-
-      // If SHIFT not pressed, single-col logic
-      if (!isShiftPressed) {
-        if (newSorting[0]?.key === key) {
-          if (!newSorting[0].desc) {
-            // asc -> desc
-            newSorting[0].desc = true;
+      let newSort = [...prev];
+      if (!shift) {
+        // Tek sütun
+        if (newSort[0]?.key === key) {
+          if (!newSort[0].desc) {
+            newSort[0].desc = true; // asc->desc
           } else {
-            // desc -> remove
-            newSorting = [];
+            newSort = [];          // desc->none
           }
         } else {
-          // new single-col asc
-          newSorting = [{ key, desc: false }];
+          newSort = [{ key, desc: false }];
         }
-        return newSorting;
+        return newSort;
       }
-
-      // SHIFT pressed -> multi-col logic
-      const existingIndex = newSorting.findIndex((rule) => rule.key === key);
-      if (existingIndex === -1) {
-        // add asc
-        newSorting.push({ key, desc: false });
+      // shift -> multi-col
+      const idx = newSort.findIndex((r) => r.key === key);
+      if (idx === -1) {
+        newSort.push({ key, desc: false });
       } else {
-        // toggle asc->desc->remove
-        if (!newSorting[existingIndex].desc) {
-          // asc->desc
-          newSorting[existingIndex].desc = true;
+        if (!newSort[idx].desc) {
+          newSort[idx].desc = true;
         } else {
-          // remove
-          newSorting.splice(existingIndex, 1);
+          newSort.splice(idx, 1);
         }
       }
-      return newSorting;
+      return newSort;
     });
   }
 
-  // -------------------------
-  // Filter & Sort & Paginate Data
-  // -------------------------
-  // 1) Column-based filters
+  // ------------------- Görünür Sütunlar -------------------
+  const visibleColumns = columns.filter((c) => c.visible !== false);
+
+  // ------------------- Filtre / Sıralama / Sayfalama -------------------
+  // 1) Column-based filtre
   let filteredData = data;
   if (filterMode === "column" || filterMode === "both") {
     filteredData = applyColumnFilters(filteredData, columnFilters);
   }
-  // 2) Global filter
+  // 2) Global filtre
   if (filterMode === "global" || filterMode === "both") {
-    filteredData = applyGlobalFilter(filteredData, globalFilter);
+    filteredData = applyGlobalFilter(filteredData, visibleColumns, globalFilter);
   }
-  // 3) Multi-column sort
+  // 3) Sıralama
   let sortedData = [...filteredData];
   if (enableSorting && sorting.length > 0) {
-    // stable multi-pass
     for (let i = 0; i < sorting.length; i++) {
       const { key, desc } = sorting[i];
       sortedData.sort((a, b) => {
@@ -249,7 +246,7 @@ export function DataTable<
       });
     }
   }
-  // 4) Pagination
+  // 4) Sayfalama
   let finalData = sortedData;
   let totalPages = 1;
   if (enablePagination) {
@@ -258,17 +255,37 @@ export function DataTable<
     finalData = sortedData.slice(startIndex, startIndex + pageSize);
   }
 
-  // compute visible IDs for "select all visible" logic
+  // "Select All Visible"
   const visibleIds = finalData.map((row) => row[rowKey] as string | number);
   const allVisibleSelected =
     visibleIds.length > 0 && visibleIds.every((id) => selectedIds.includes(id));
 
-  // -------------------------
-  // RENDER
-  // -------------------------
+  // ------------------- Parent’a Bildirim (onDataChange) -------------------
+  const prevFinalDataRef = useRef<T[]>([]);
+  const prevColsRef = useRef<DataTableColumn<T>[]>([]);
+
+  useEffect(() => {
+    if (!onDataChange) return;
+
+    const oldData = prevFinalDataRef.current;
+    const oldCols = prevColsRef.current;
+
+    const dataChanged = !shallowEqualArrays(oldData, finalData);
+    const colsChanged = !shallowEqualColumns(oldCols, visibleColumns);
+
+    if (dataChanged || colsChanged) {
+      onDataChange({
+        finalData,
+        visibleColumns,
+      });
+      prevFinalDataRef.current = finalData;
+      prevColsRef.current = visibleColumns;
+    }
+  }, [onDataChange, finalData, visibleColumns]);
+
+  // ------------------- RENDER -------------------
   return (
     <div className="bg-white p-4 rounded shadow w-full">
-      {/* Global filter input (if "global" or "both") */}
       {(filterMode === "global" || filterMode === "both") && (
         <div className="mb-4">
           <Input
@@ -283,14 +300,11 @@ export function DataTable<
       )}
 
       <table className="w-full border-collapse">
-        {/* Column-based filter row (if "column" or "both") */}
         {(filterMode === "column" || filterMode === "both") && (
           <thead>
             <tr>
-              {/* Row selection column (no filter) */}
               {enableRowSelection && <th className="p-2"></th>}
-
-              {columns.map((col) => (
+              {visibleColumns.map((col) => (
                 <th key={`filter-${col.key.toString()}`} className="p-2">
                   <Input
                     placeholder={`Filter ${col.header}`}
@@ -305,7 +319,6 @@ export function DataTable<
                   />
                 </th>
               ))}
-              {/* actions column (no filter) */}
               {actions && actions.length > 0 && <th className="p-2"></th>}
             </tr>
           </thead>
@@ -313,7 +326,6 @@ export function DataTable<
 
         <thead className="bg-gray-100">
           <tr>
-            {/* Row selection header (select all visible) */}
             {enableRowSelection && (
               <th className="p-2">
                 <input
@@ -324,14 +336,12 @@ export function DataTable<
               </th>
             )}
 
-            {columns.map((col) => {
-              const indexOfRule = sorting.findIndex((rule) => rule.key === col.key);
-              const isSorted = indexOfRule !== -1;
-
+            {visibleColumns.map((col) => {
+              const idx = sorting.findIndex((r) => r.key === col.key);
+              const isSorted = idx !== -1;
               let arrow = null;
               if (isSorted) {
-                const { desc } = sorting[indexOfRule];
-                arrow = desc ? <ArrowDown size={14} /> : <ArrowUp size={14} />;
+                arrow = sorting[idx].desc ? <ArrowDown size={14} /> : <ArrowUp size={14} />;
               }
 
               return (
@@ -346,15 +356,16 @@ export function DataTable<
                     {col.header}
                     {isSorted && (
                       <span className="flex items-center gap-1">
-                        ({indexOfRule + 1}) {arrow}
+                        ({idx + 1}) {arrow}
                       </span>
                     )}
                   </div>
                 </th>
               );
             })}
-
-            {actions && actions.length > 0 && <th className="text-left p-2">Actions</th>}
+            {actions && actions.length > 0 && (
+              <th className="text-left p-2">Actions</th>
+            )}
           </tr>
         </thead>
 
@@ -362,7 +373,6 @@ export function DataTable<
           {finalData.length > 0 ? (
             finalData.map((row, rowIndex) => {
               const uniqueKey = (row[rowKey] ?? rowIndex) as string | number;
-
               return (
                 <tr key={uniqueKey.toString()} className="border-b hover:bg-gray-50">
                   {enableRowSelection && (
@@ -375,7 +385,7 @@ export function DataTable<
                     </td>
                   )}
 
-                  {columns.map((col) => (
+                  {visibleColumns.map((col) => (
                     <td key={col.key.toString()} className="p-2">
                       {col.render ? col.render(row) : row[col.key]?.toString()}
                     </td>
@@ -403,7 +413,7 @@ export function DataTable<
             <tr>
               <td
                 colSpan={
-                  columns.length +
+                  visibleColumns.length +
                   (actions?.length ? 1 : 0) +
                   (enableRowSelection ? 1 : 0)
                 }
@@ -416,7 +426,6 @@ export function DataTable<
         </tbody>
       </table>
 
-      {/* Pagination controls */}
       {enablePagination && (
         <div className="flex justify-between items-center mt-4">
           <div className="flex items-center gap-2">
@@ -428,12 +437,16 @@ export function DataTable<
               Previous
             </Button>
             <span>
-              Page {currentPage} of {totalPages}
+              Page {currentPage} of {Math.ceil(sortedData.length / pageSize)}
             </span>
             <Button
               variant="outline"
-              onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
-              disabled={currentPage === totalPages}
+              onClick={() =>
+                setCurrentPage((prev) =>
+                  Math.min(prev + 1, Math.ceil(sortedData.length / pageSize))
+                )
+              }
+              disabled={currentPage === Math.ceil(sortedData.length / pageSize)}
             >
               Next
             </Button>
