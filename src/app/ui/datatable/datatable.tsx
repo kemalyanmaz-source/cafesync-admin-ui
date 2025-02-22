@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect, useRef, MouseEvent } from "react";
 import { ArrowUp, ArrowDown } from "lucide-react";
-import { Button } from "./button";  // ShadCN UI button
-import { Input } from "./input";    // ShadCN UI input
+import { Button } from "../button";  // ShadCN UI button
+import { Input } from "../input";    // ShadCN UI input
 
 /** Tablo sütun tanımı */
 export type DataTableColumn<T> = {
@@ -160,10 +160,13 @@ export function DataTable<
       } else {
         newSelected = [...prev, rowId];
       }
-      onSelectionChange?.(newSelected);
       return newSelected;
     });
   }
+  useEffect(() => {
+    onSelectionChange?.(selectedIds);
+  }, [onSelectionChange, selectedIds]);
+  
 
   function toggleSelectAllVisible(
     e: React.ChangeEvent<HTMLInputElement>,

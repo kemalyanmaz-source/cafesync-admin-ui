@@ -9,7 +9,7 @@ const Sidebar = () => {
 
       <nav className="flex-1 space-y-4">
         <SidebarItem href="/" icon={<LayoutDashboard size={20} />} text="Dashboard" />
-        <SidebarItem href="/tables" icon={<Table size={20} />} text="Tables" />
+        <SidebarItem href="/pages/users" icon={<Table size={20} />} text="Tables" />
         <SidebarItem href="/settings" icon={<Settings size={20} />} text="Settings" />
       </nav>
 
