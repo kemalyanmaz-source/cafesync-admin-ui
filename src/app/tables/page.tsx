@@ -20,34 +20,51 @@ const defaultData: User[] = [
   { id: 2, name: "Ayşe Demir", email: "ayse@example.com", role: "User" },
   { id: 3, name: "Mehmet Akar", email: "mehmet@example.com", role: "User" },
   { id: 4, name: "Zeynep Şahin", email: "zeynep@example.com", role: "Editor" },
+  { id: 5, name: "Ali Çelik", email: "ali@example.com", role: "User" },
+  { id: 6, name: "Fatma Koç", email: "fatma@example.com", role: "Admin" },
+  { id: 7, name: "Emre Güneş", email: "emre@example.com", role: "Editor" },
+  { id: 8, name: "Burak Yıldız", email: "burak@example.com", role: "User" },
+  { id: 9, name: "Cem Özkan", email: "cem@example.com", role: "Admin" },
+  { id: 10, name: "Selin Arslan", email: "selin@example.com", role: "User" },
 ];
 
 export default function TablesPage() {
   const [data, setData] = useState<User[]>(defaultData);
   const [filters, setFilters] = useState(new FilterModel());
 
-  // Function to update filter values
+  // ✅ Define pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 5; // ✅ Default page size
+
+  // ✅ Apply filtering first
+  const filteredData = filters.applyFilters(data);
+
+  // ✅ Apply pagination AFTER filtering
+  const startIndex = (currentPage - 1) * pageSize;
+  const paginatedData = filteredData.slice(startIndex, startIndex + pageSize);
+  const totalPages = Math.ceil(filteredData.length / pageSize);
+
+  // ✅ Function to update filter values
   const handleColumnFilterChange = (field: keyof FilterModel, value: string) => {
     setFilters((prevFilters) => new FilterModel(
       field === "name" ? value : prevFilters.name,
       field === "email" ? value : prevFilters.email,
       field === "role" ? value : prevFilters.role
     ));
+    setCurrentPage(1); // ✅ Reset pagination on filtering
   };
 
-  // Reset filters
+  // ✅ Reset filters
   const resetFilters = () => {
     setFilters(new FilterModel());
+    setCurrentPage(1);
   };
-
-  // Apply filters to data
-  const filteredData = filters.applyFilters(data);
 
   return (
     <div className="bg-white p-6 rounded-md shadow-md">
       <h1 className="text-2xl font-bold mb-4">Users Table</h1>
 
-      {/* Accordion for Filters */}
+      {/* ✅ Accordion for Filters */}
       <Accordion title="Filter Options">
         <div className="grid grid-cols-2 gap-4">
           <Input
@@ -73,7 +90,7 @@ export default function TablesPage() {
         </div>
       </Accordion>
 
-      {/* Table */}
+      {/* ✅ Table */}
       <table className="w-full border-collapse mt-4">
         <thead>
           <tr>
@@ -84,8 +101,8 @@ export default function TablesPage() {
           </tr>
         </thead>
         <tbody>
-          {filteredData.length > 0 ? (
-            filteredData.map((user : User) => (
+          {paginatedData.length > 0 ? (
+            paginatedData.map((user: User) => (
               <tr key={user.id}>
                 <td className="p-2">{user.id}</td>
                 <td className="p-2">{user.name}</td>
@@ -102,6 +119,27 @@ export default function TablesPage() {
           )}
         </tbody>
       </table>
+
+      {/* ✅ Pagination Controls */}
+      <div className="flex justify-between items-center mt-4">
+        <Button
+          variant="outline"
+          onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+          disabled={currentPage === 1}
+        >
+          Previous
+        </Button>
+        <span>
+          Page {currentPage} of {totalPages}
+        </span>
+        <Button
+          variant="outline"
+          onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+          disabled={currentPage === totalPages}
+        >
+          Next
+        </Button>
+      </div>
     </div>
   );
 }
