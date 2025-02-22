@@ -2,15 +2,17 @@
 
 import { useRouter } from "next/navigation";
 import { DataTableColumn, DataTableAction, DataTable } from "../ui/datatable";
+import { useState } from "react";
+import { Button } from "../ui/button";
 
 type User = {
-  id: number; // or string if you use GUID
+  id: number; // or string if you want GUID
   name: string;
   email: string;
   role: string;
 };
 
-const users: User[] = [
+const userData: User[] = [
   { id: 1, name: "Ahmet Yılmaz", email: "ahmet@example.com", role: "Admin" },
   { id: 2, name: "Ayşe Demir", email: "ayse@example.com", role: "User" },
   { id: 3, name: "Mehmet Akar", email: "mehmet@example.com", role: "User" },
@@ -26,18 +28,26 @@ const users: User[] = [
 export default function UsersPage() {
   const router = useRouter();
 
-  // Table columns
+
+  const [selectedIds, setSelectedIds] = useState<Array<string | number>>([]);
+
+  function handleBulkDelete() {
+    console.log("Deleting selected rows:", selectedIds);
+    // e.g., remove them from data or call an API
+  }
+
+  // columns
   const columns: DataTableColumn<User>[] = [
     { key: "name", header: "Name", sortable: true },
     { key: "email", header: "Email", sortable: true },
     { key: "role", header: "Role", sortable: true },
   ];
 
-  // Row actions
+  // row actions
   const actions: DataTableAction<User>[] = [
     {
       label: "Edit",
-      onClick: (row : User) => {
+      onClick: (row: User) => {
         console.log("Editing user:", row);
         router.push(`/users/edit/${row.id}`);
       },
@@ -54,15 +64,33 @@ export default function UsersPage() {
       <h1 className="text-2xl font-bold mb-4">Users</h1>
       <DataTable
         columns={columns}
-        data={users}
+        data={userData}
         actions={actions}
-        filterMode="column" // or "global" | "column" | "none"
+
+        // Filter: "both" = global + column filters
+        filterMode="column"
         filterPlaceholder="Search all columns..."
+
+        // Sorting (multi-column)
         enableSorting
+        // Pagination
         enablePagination
-        initialPageSize={5}
-        pageSizeOptions={[5, 10, 20]}
+        initialPageSize={20}
+        pageSizeOptions={[5, 10, 20, 50]}
+      // rowKey defaults to "id"
       />
+      
+      {selectedIds.length > 1 && 
+      <div className="flex items-center gap-2 mt-5">
+        <Button
+          variant="destructive"
+          onClick={handleBulkDelete}
+          disabled={selectedIds.length === 0}
+        >
+          Bulk Delete
+        </Button>
+      </div>
+      }
     </div>
   );
 }
