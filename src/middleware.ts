@@ -5,9 +5,7 @@ import { NextResponse } from "next/server"
 export default withAuth(
   function middleware(req) {
     // Giriş yapmış kullanıcıyı login sayfasından uzaklaştır
-    if (req.nextUrl.pathname === "/login" && req.nextauth.token) {
-      return NextResponse.redirect(new URL("/", req.url))
-    }
+ 
   },
   {
     callbacks: {
@@ -21,8 +19,3 @@ export default withAuth(
     },
   }
 )
-
-// Tüm rotaları koru ama login ve static dosyaları hariç tut
-export const config = {
-  matcher: ["/((?!login|_next/static|favicon.ico).*)"]
-}

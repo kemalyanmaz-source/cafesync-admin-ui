@@ -1,25 +1,40 @@
-"use client"
 import { LayoutDashboard, Table, Settings } from "lucide-react";
-import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { JSX } from "react";
 
-const Sidebar = () => {
+export default function Sidebar({
+  isUser
+}: {
+  isUser: boolean;
+}) {
 
-  const { data: session } = useSession();
   return (
-    <div className="h-screen w-64 bg-gradient-to-b from-indigo-900 to-purple-800 text-white flex flex-col p-4">
-      <h2 className="text-2xl font-bold mb-6">CafeSync Admin</h2>
-      <>
-        {session &&
-          <nav className="flex-1 space-y-4">
-            <SidebarItem href="/" icon={<LayoutDashboard size={20} />} text="Dashboard" />
-            <SidebarItem href="/pages/users" icon={<Table size={20} />} text="Users" />
-            <SidebarItem href="/pages/cafes" icon={<Table size={20} />} text="Cafes" />
-            <SidebarItem href="/settings" icon={<Settings size={20} />} text="Settings" />
-          </nav>}
-      </>
-    </div>
+    <>
+      {
+        isUser ?
+
+          <div className="h-screen w-64 bg-gradient-to-b from-indigo-900 to-purple-800 text-white flex flex-col p-4">
+            <h2 className="text-2xl font-bold mb-6">CafeSync Admin</h2>
+            {
+              <nav className="flex-1 space-y-4">
+                <SidebarItem href="/home" icon={<LayoutDashboard size={20} />} text="Dashboard" />
+                <SidebarItem href="/users" icon={<Table size={20} />} text="Users" />
+                <SidebarItem href="/cafes" icon={<Table size={20} />} text="Cafes" />
+                <SidebarItem href="/settings" icon={<Settings size={20} />} text="Settings" />
+              </nav>
+            }
+          </div>
+          :
+          <div className="h-screen w-64 bg-gradient-to-b from-black-900 to-white text-indigo flex flex-col p-4">
+            <h2 className="text-2xl font-bold mb-6">CafeSync Admin</h2>
+            {
+              <nav className="flex-1 space-y-4">
+                <SidebarItem href="/" icon={<LayoutDashboard size={20} />} text="About Us" />
+              </nav>
+            }
+          </div>
+      }
+    </>
   );
 };
 
@@ -30,4 +45,3 @@ const SidebarItem = ({ href, icon, text }: { href: string; icon: JSX.Element; te
   </Link>
 );
 
-export default Sidebar;

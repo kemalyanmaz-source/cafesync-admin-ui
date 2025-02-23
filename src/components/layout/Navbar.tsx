@@ -1,43 +1,16 @@
 "use client";
-
 import { Search, Bell, User } from "lucide-react";
 import { signIn, signOut, useSession } from "next-auth/react";
 import { useState, useEffect, useRef } from "react";
 
-const Navbar = () => {
+export default function Navbar() {
 
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
-  const [fetched, setFetched] = useState(false);
-  const { data: session, status } = useSession();
+  const { data: session } = useSession();
   const toggleMenu = (menu: string) => {
     setActiveMenu(activeMenu === menu ? null : menu);
   };
-
-  useEffect(() => {
-    // Kullanıcı "authenticated" olduktan sonra, henüz istek atmadıysak
-    if (status === "authenticated" && !fetched && session?.user?.idToken) {
-      if (session?.user?.idToken) {
-        // ID Token'ı backend'e gönder
-        fetch("https://localhost:44368/api/auth/oauth-login", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ idToken: session?.user?.idToken }),
-        })
-          .then((res) => res.json())
-          .then((data) => {
-            console.log("Backend verification:", data);
-            session.user.customAppToken = data.token;
-            // data.appJwt vb. geldiyse ister localStorage'a kaydet
-          })
-          .catch((err) => console.error("Error verifying token:", err))
-          .finally(() => setFetched(true));
-      } else {
-        // ID Token yoksa da bir daha denemeyelim
-        setFetched(true);
-      }
-    }
-  }, [status, fetched, session?.user?.idToken]);
 
   // Dışarı tıklayınca popup’ı kapat
   useEffect(() => {
@@ -55,7 +28,7 @@ const Navbar = () => {
 
   return (
     <>
-      {session &&
+      {
         <div className="h-16 bg-white shadow-md flex items-center px-6 fixed top-0 left-64 right-0 w-[calc(100%-16rem)] z-50">
           {/* Arama Çubuğu */}
           <div className="flex items-center bg-gray-100 px-3 py-2 rounded-lg w-1/3">
@@ -131,5 +104,3 @@ const Navbar = () => {
     </>
   );
 };
-
-export default Navbar;

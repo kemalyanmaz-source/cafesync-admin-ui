@@ -1,8 +1,8 @@
 // src/app/api/auth/[...nextauth]/route.ts
-import NextAuth from "next-auth";
+import NextAuth, { AuthOptions } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 
-const handler = NextAuth({
+export const authOptions: AuthOptions = {
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID as string,
@@ -23,20 +23,36 @@ const handler = NextAuth({
       return true; // Girişe izin ver
     },
     async jwt({ token, account }) {
-      if (account) {
-        token.idToken = account.id_token;
+      if (account && account.provider === "google") {
         token.accessToken = account.access_token;
         token.refreshToken = account.refresh_token;
         token.expiresAt = account.expires_at;
-      } else if (Date.now() < (token.expiresAt as number) * 1000) {
-        return token;
-      } else {
-        // Token yenileme işlemi
+        // Google gives you an access_token and id_token
+        // Suppose you want to use 'id_token' to call your backend:
+        const googleIdToken = account.id_token;
+
+        // 2. Call your backend with googleIdToken:
+        try {
+          console.log(account.id_token)
+          const resp = await fetch("http://localhost:5064/api/system-admin/oauth-login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ idToken: googleIdToken }),
+          });
+          const data = await resp.json();
+          token.customAppToken = data.token;
+        } catch (e) {
+          console.error("Error in jwt callback fetch:", e);
+          // If you rethrow, NextAuth aborts sign-in
+          throw e;
+        }
+
       }
+
       return token;
     },
     async session({ session, token }) {
-      session.user.idToken = token.idToken as string;
+      session.user.customAppToken = token.customAppToken as string;
       return session;
     },
   },
@@ -46,6 +62,8 @@ const handler = NextAuth({
       console.log(JSON.stringify(token));
     },
   },
-});
+}
+
+const handler = NextAuth(authOptions);
 
 export { handler as GET, handler as POST };
