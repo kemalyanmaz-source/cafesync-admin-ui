@@ -19,14 +19,12 @@ const handler = NextAuth({
   secret: process.env.NEXTAUTH_SECRET,
   debug: true,
   callbacks: {
-    async signIn({ user, account, profile, email, credentials }) {
-      if (account?.provider === "google") {
-        console.log("User signed in with Google:", user);
-      }
+    async signIn() {
       return true; // Girişe izin ver
     },
-    async jwt({ token, account }) {
+    async jwt({ token, account}) {
       if (account) {
+        token.idToken = account.id_token;
         token.accessToken = account.access_token;
         token.refreshToken = account.refresh_token;
         token.expiresAt = account.expires_at;
@@ -38,7 +36,7 @@ const handler = NextAuth({
       return token;
     },
     async session({ session, token }) {
-      session.accessToken = token.accessToken as string;
+      session.user.idToken =  token.idToken as string;
       return session;
     },
   },

@@ -10,12 +10,17 @@ declare module "next-auth" {
       email?: string | null;
       image?: string | null;
       role?: string; // Role özelliğini ekliyoruz
+      customAppToken?: string | null;
+      idToken?: string | null;
     };
+    
   }
   
   interface JWT {
     accessToken?: string;
     refreshToken?: string;
     expiresAt?: number;
+    customAppToken?: string | null;
+    idToken?: string | null;
   }
 }

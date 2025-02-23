@@ -2,18 +2,42 @@
 
 import { Search, Bell, User } from "lucide-react";
 import { signIn, signOut, useSession } from "next-auth/react";
-import { redirect } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
 
 const Navbar = () => {
 
-  const { data: session } = useSession();
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
-
+  const [fetched, setFetched] = useState(false);
+  const { data: session, status } = useSession();
   const toggleMenu = (menu: string) => {
     setActiveMenu(activeMenu === menu ? null : menu);
   };
+
+  useEffect(() => {
+    // Kullanıcı "authenticated" olduktan sonra, henüz istek atmadıysak
+    if (status === "authenticated" && !fetched && session?.user?.idToken) {
+      if (session?.user?.idToken) {
+        // ID Token'ı backend'e gönder
+        fetch("https://localhost:44368/api/auth/oauth-login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ idToken: session?.user?.idToken }),
+        })
+          .then((res) => res.json())
+          .then((data) => {
+            console.log("Backend verification:", data);
+            session.user.customAppToken = data;
+            // data.appJwt vb. geldiyse ister localStorage'a kaydet
+          })
+          .catch((err) => console.error("Error verifying token:", err))
+          .finally(() => setFetched(true));
+      } else {
+        // ID Token yoksa da bir daha denemeyelim
+        setFetched(true);
+      }
+    }
+  }, [status, fetched, session?.user?.idToken]);
 
   // Dışarı tıklayınca popup’ı kapat
   useEffect(() => {
@@ -65,16 +89,16 @@ const Navbar = () => {
         <div className="relative">
 
           {session
-          ?
-          <button onClick={() => toggleMenu("profile")} className="flex items-center space-x-2">
-            <User size={24} className="text-gray-600 hover:text-gray-800 transition" />
-            <span className="text-gray-700 font-medium">{session?.user.name}</span>
-          </button>
-          :
-          <button onClick={() => toggleMenu("login")} className="flex items-center space-x-2">
-            <User size={24} className="text-gray-600 hover:text-gray-800 transition" />
-            <span className="text-gray-700 font-medium">Login</span>
-          </button>
+            ?
+            <button onClick={() => toggleMenu("profile")} className="flex items-center space-x-2">
+              <User size={24} className="text-gray-600 hover:text-gray-800 transition" />
+              <span className="text-gray-700 font-medium">{session?.user.name}</span>
+            </button>
+            :
+            <button onClick={() => toggleMenu("login")} className="flex items-center space-x-2">
+              <User size={24} className="text-gray-600 hover:text-gray-800 transition" />
+              <span className="text-gray-700 font-medium">Login</span>
+            </button>
           }
 
           {activeMenu === "profile" && (
@@ -85,7 +109,7 @@ const Navbar = () => {
               <button className="block text-left px-4 py-2 text-gray-700 hover:bg-gray-100 w-full">
                 Ayarlar
               </button>
-              <button className="block text-left px-4 py-2 text-red-600 hover:bg-gray-100 w-full" onClick={()=>signOut()}>
+              <button className="block text-left px-4 py-2 text-red-600 hover:bg-gray-100 w-full" onClick={() => signOut()}>
                 Çıkış Yap
               </button>
             </div>
