@@ -22,7 +22,7 @@ const handler = NextAuth({
     async signIn() {
       return true; // Girişe izin ver
     },
-    async jwt({ token, account}) {
+    async jwt({ token, account }) {
       if (account) {
         token.idToken = account.id_token;
         token.accessToken = account.access_token;
@@ -36,13 +36,14 @@ const handler = NextAuth({
       return token;
     },
     async session({ session, token }) {
-      session.user.idToken =  token.idToken as string;
+      session.user.idToken = token.idToken as string;
       return session;
     },
   },
   events: {
-    async signOut(message) {
-      console.log("User signed out:", message.session);
+    async signOut({ session, token }) {
+      console.log(JSON.stringify(session));
+      console.log(JSON.stringify(token));
     },
   },
 });

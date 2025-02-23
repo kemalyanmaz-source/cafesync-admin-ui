@@ -1,15 +1,28 @@
-import { getToken } from "next-auth/jwt";
-import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
+// middleware.ts
+import { withAuth } from "next-auth/middleware"
+import { NextResponse } from "next/server"
 
-export async function middleware(request: NextRequest) {
-  const token = await getToken({ req: request });
-  if (!token) {
-    return NextResponse.redirect(new URL("/login", request.url));
+export default withAuth(
+  function middleware(req) {
+    // Giriş yapmış kullanıcıyı login sayfasından uzaklaştır
+    if (req.nextUrl.pathname === "/login" && req.nextauth.token) {
+      return NextResponse.redirect(new URL("/", req.url))
+    }
+  },
+  {
+    callbacks: {
+      authorized: ({ token }) => {
+        // Login sayfasını koruma dışında bırak
+        return !!token
+      },
+    },
+    pages: {
+      signIn: "/login", // Doğru login sayfası yolu
+    },
   }
-  return NextResponse.next();
-}
+)
 
+// Tüm rotaları koru ama login ve static dosyaları hariç tut
 export const config = {
-  matcher: ["/dashboard/:path*"], // Sadece /dashboard sayfasını koru
-};
+  matcher: ["/((?!login|_next/static|favicon.ico).*)"]
+}

@@ -1,12 +1,14 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { TableColumnsDropdown } from "@/components/ui/datatable/columns-dropdown";
 import { DataTableColumn, DataTableState, DataTableAction, DataTable } from "@/components/ui/datatable/datatable";
 import { Dropdown } from "@/components/ui/dropdown/Dropdown";
 import { ExportColumnsDropdown } from "@/components/ui/datatable/export-dropdown";
+import { useSession } from "next-auth/react";
+import { GET, POST } from "@/app/api/auth/[...nextauth]/route";
 
 
 type User = {
@@ -16,14 +18,47 @@ type User = {
   role: string;
 };
 
-const userData: User[] = [
-  { id: 1, name: "Ahmet", email: "ahmet@example.com", role: "Admin" },
-  { id: 2, name: "Ayşe", email: "ayse@example.com", role: "User" },
-  // ...
-];
-
+type Token ={
+  token: string
+}
 export default function UsersPage() {
+  const { data: session, status } = useSession();
   const router = useRouter();
+  const [users, setUsers] = useState([]);
+
+  useEffect(() => {
+    if (status === "unauthenticated") {
+      router.push("/login");
+    } else if (status === "authenticated") {
+      // session.customAppToken => Kendi JWT'miz
+
+
+      const token = session?.user.customAppToken 
+      console.log(1);
+      if (!token) return;
+      // fetch
+      console.log(2);
+      fetch("https://localhost:44368/api/system-admin/list", {
+        method: "GET",
+        headers: { "Content-Type": "application/json","Authorization": `Bearer ${token}` }
+      })
+        .then((res) => {
+          if(res.ok){
+            return res.json()
+          }else{
+            console.log("Hata: " +token+"\n"+JSON.stringify(res.body))
+          }
+        })
+        .then((data) => {
+          console.log("Backend verification:", data);
+          setUsers(data);
+          // data.appJwt vb. geldiyse ister localStorage'a kaydet
+        })
+        .catch((err) => console.error("Error verifying token:", err))
+    }
+  }, [status, session, router]);
+
+
 
   // Table columns
   const [tableColumns, setTableColumns] = useState<DataTableColumn<User>[]>([
@@ -50,7 +85,7 @@ export default function UsersPage() {
   const actions: DataTableAction<User>[] = [
     {
       label: "Edit",
-      onClick: (row) => router.push(`/users/edit/${row.id}`),
+      onClick: (row) => router.push(`/pages/users/edit/${row.id}`),
     },
     {
       label: "Delete",
@@ -112,7 +147,7 @@ export default function UsersPage() {
 
       <DataTable
         columns={tableColumns}
-        data={userData}
+        data={users}
         actions={actions}
         filterMode="both"
         enableSorting

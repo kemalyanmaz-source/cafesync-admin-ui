@@ -1,19 +1,24 @@
+"use client"
 import { LayoutDashboard, Table, Settings } from "lucide-react";
+import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { JSX } from "react";
 
 const Sidebar = () => {
 
+  const { data: session } = useSession();
   return (
     <div className="h-screen w-64 bg-gradient-to-b from-indigo-900 to-purple-800 text-white flex flex-col p-4">
       <h2 className="text-2xl font-bold mb-6">CafeSync Admin</h2>
-
-      <nav className="flex-1 space-y-4">
-        <SidebarItem href="/" icon={<LayoutDashboard size={20} />} text="Dashboard" />
-        <SidebarItem href="/pages/users" icon={<Table size={20} />} text="Users" />
-        <SidebarItem href="/pages/cafes" icon={<Table size={20} />} text="Cafes" />
-        <SidebarItem href="/settings" icon={<Settings size={20} />} text="Settings" />
-      </nav>
+      <>
+        {session &&
+          <nav className="flex-1 space-y-4">
+            <SidebarItem href="/" icon={<LayoutDashboard size={20} />} text="Dashboard" />
+            <SidebarItem href="/pages/users" icon={<Table size={20} />} text="Users" />
+            <SidebarItem href="/pages/cafes" icon={<Table size={20} />} text="Cafes" />
+            <SidebarItem href="/settings" icon={<Settings size={20} />} text="Settings" />
+          </nav>}
+      </>
     </div>
   );
 };

@@ -39,7 +39,7 @@ export interface DataTableState<T> {
 /** DataTable props */
 export interface DataTableProps<T extends { id: string | number } & Record<string, unknown>> {
   columns: DataTableColumn<T>[];
-  data: T[];
+  data?: T[];
   actions?: DataTableAction<T>[];
 
   // Filtre
@@ -68,14 +68,18 @@ function applyColumnFilters<T extends Record<string, unknown>>(
   data: T[],
   filters: { [key: string]: string }
 ): T[] {
-  return data.filter((row) =>
-    Object.entries(filters).every(([colKey, filterVal]) => {
-      if (!filterVal) return true;
-      const val = row[colKey];
-      if (val == null) return false;
-      return val.toString().toLowerCase().includes(filterVal.toLowerCase());
-    })
-  );
+
+  if(data){
+    return data?.filter((row) =>
+      Object.entries(filters).every(([colKey, filterVal]) => {
+        if (!filterVal) return true;
+        const val = row[colKey];
+        if (val == null) return false;
+        return val.toString().toLowerCase().includes(filterVal.toLowerCase());
+      })
+    );
+  }
+  return [];
 }
 
 function applyGlobalFilter<T extends Record<string, unknown>>(
@@ -224,14 +228,14 @@ export function DataTable<
   // 1) Column-based filtre
   let filteredData = data;
   if (filterMode === "column" || filterMode === "both") {
-    filteredData = applyColumnFilters(filteredData, columnFilters);
+    filteredData = applyColumnFilters(filteredData??[], columnFilters);
   }
   // 2) Global filtre
   if (filterMode === "global" || filterMode === "both") {
-    filteredData = applyGlobalFilter(filteredData, visibleColumns, globalFilter);
+    filteredData = applyGlobalFilter(filteredData??[], visibleColumns, globalFilter);
   }
   // 3) Sıralama
-  let sortedData = [...filteredData];
+  let sortedData = [...filteredData??[]];
   if (enableSorting && sorting.length > 0) {
     for (let i = 0; i < sorting.length; i++) {
       const { key, desc } = sorting[i];

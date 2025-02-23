@@ -4,11 +4,20 @@ import { ArrowUpRight, DollarSign, LineChart, ShoppingCart } from "lucide-react"
 import dynamic from "next/dynamic";
 import { Card, CardContent } from "../components/ui/card";
 import { JSX } from "react";
+import { redirect } from "next/navigation";
+import { useSession } from "next-auth/react";
 
 // Grafik bileşenini dinamik olarak yükleyelim (SSR kapalı)
 const Chart = dynamic(() => import("../components/ui/Chart"), { ssr: false });
 
 export default function Dashboard() {
+
+  const { data: session, status } = useSession();
+
+  if (status === "unauthenticated" || !session) {
+    redirect("/login") // Middleware zaten engeller ama ek güvenlik
+  }
+  
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
       {/* Kartlar */}
